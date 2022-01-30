@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::slice::Iter;
 
 use serde::Deserialize;
 
@@ -23,12 +24,15 @@ fn main() {
     let learning_data: Vec<Game> = serde_json::from_str(&learn_json)
         .expect("Failed to parse learning data from string");
 
-    let target_data: Vec<Game> = serde_json::from_str(&target_json)
+    let target_data: Vec<Vec<u64>> = serde_json::from_str(&target_json)
         .expect("Failed to parse target data from string");
 
     print!("Processing learning data...");
-    let stats: Vec<f64> = process_data(learning_data);
+    let stats: Vec<Vec<u64>> = process_data(learning_data);
     println!("DONE\n{:?}", stats);
+    for stat in &stats {
+        print!("{:?}\t", calculate_mean(stat));
+    }
 
 
     print!("\nDetecting Given sudoku difficulty...");
@@ -41,20 +45,14 @@ fn main() {
     }
 }
 
-fn process_data(data: Vec<Game>) -> Vec<f64> {
-    let mut results: Vec<u64> = vec![0; 4];
-    let mut count: Vec<u64> = vec![0; 4];
-    
+fn process_data(data: Vec<Game>) -> Vec<Vec<u64>> {
+    let mut results: Vec<Vec<u64>> = vec![vec![]; 4];
     for v in data  {
         let index: u64 = v.difficulty;
         let board: Vec<u64> = v.board;
-        results[index as usize] += find_number_count(board); 
-        count[index as usize] += 1;
+        results[index as usize].push(find_number_count(board));
     }
-
-    (0..4).map(|i| {
-        results[i] as f64 / count[i] as f64
-    }).collect()
+    return results;
 }
 
 fn find_number_count(board: Vec<u64>) -> u64 {
@@ -67,19 +65,24 @@ fn find_number_count(board: Vec<u64>) -> u64 {
     return count;
 }
 
-fn judge_difficulty(data: Vec<Game>, stats: Vec<f64>) -> Vec<(u64, u64)> {
+fn judge_difficulty(data: Vec<Vec<u64>>, stats: Vec<Vec<u64>>) -> Vec<(u64, u64)> {
     let mut ret_val: Vec<(u64, u64)> = vec![];
     for game in data {
-        let count = find_number_count(game.board);
+        let count = find_number_count(game);
         let mut found: (u64, f64) = (0, 81.0);
 
         for (i, stat) in stats.iter().enumerate() {
-            let diff: f64 = (stat - count as f64).abs();
+            let diff: f64 = (calculate_mean(&stat) - count as f64).abs();
             if diff < found.1 {
-                found = (i as u64, diff) 
+                found = (i as u64, diff)
             }
         }
         ret_val.push((found.0, count));
     };
     ret_val
+}
+
+fn calculate_mean(vector: &[u64]) -> f64 {
+    let sum: u64 = Iter::sum(vector.iter());
+    (sum as f64) / (vector.len() as f64)
 }
