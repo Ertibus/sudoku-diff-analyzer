@@ -65,7 +65,7 @@ fn find_number_count(board: Vec<u64>) -> u64 {
     return count;
 }
 
-fn judge_difficulty(data: Vec<Vec<u64>>, stats: Vec<Vec<u64>>) -> Vec<(u64, u64)> {
+fn judge_difficulty(data: Vec<Vec<u64>>, mut stats: Vec<Vec<u64>>) -> Vec<(u64, u64)> {
     let mut ret_val: Vec<(u64, u64)> = vec![];
     for game in data {
         let count = find_number_count(game);
@@ -77,6 +77,11 @@ fn judge_difficulty(data: Vec<Vec<u64>>, stats: Vec<Vec<u64>>) -> Vec<(u64, u64)
                 found = (i as u64, diff)
             }
         }
+        stats[found.0 as usize].push(count);
+        //for stat in &stats {
+            //print!("{:?}\t", calculate_mean(stat));
+        //}
+        //println!(" ");
         ret_val.push((found.0, count));
     };
     ret_val
